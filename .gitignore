@@ -1,4 +1,5 @@
-update-config.local.txt
+﻿update-config.local.txt
+publish-to-git.bat
 Unitates_BackUpThisFolder_ButDontShipItWithYourGame/
 *.log
 CrashReports/

@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Continue"
+﻿$ErrorActionPreference = "Continue"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $root
@@ -46,7 +46,7 @@ Write-Host ""
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Host "Git не установлен. Скачай https://git-scm.com/download/win"
-    Write-Host "Без Git автообновление не работает — запускаю локальную копию."
+    Write-Host "Без Git автообновление не работает - запускаю локальную копию."
     Write-Host ""
     Start-Game
     exit 0
@@ -102,7 +102,7 @@ if ($localHead -eq $remoteHead) {
     $version = "локальная"
     $versionFile = Join-Path $root "version.json"
     if (Test-Path $versionFile) {
-        try { $version = (Get-Content $versionFile -Raw -Encoding UTF8 | ConvertFrom-Json).version } catch { }
+        try { $version = (Get-Content $versionFile -Raw -Encoding UTF8 | ConvertFrom-Json).version } catch { $version = $version }
     }
     Write-Host "Обновлений нет. Версия актуальна."
     Write-Host ""

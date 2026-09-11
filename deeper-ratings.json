@@ -1,0 +1,20 @@
+{
+    "entries": [
+        {
+            "name": "Dendrizai",
+            "rating": 1028,
+            "wins": 1,
+            "losses": 0,
+            "matches": 1,
+            "kills": 0
+        },
+        {
+            "name": "Miner",
+            "rating": 1000,
+            "wins": 0,
+            "losses": 0,
+            "matches": 0,
+            "kills": 0
+        }
+    ]
+}

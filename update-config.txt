@@ -1,3 +1,4 @@
-remote=https://github.com/denuchaew877-sudo/unitates-build.git
+# Адрес репозитория, куда заливается Build (GitHub / GitLab / свой сервер).
+# Пример: https://github.com/you/unitates-build.git
+remote=
 branch=main
-
