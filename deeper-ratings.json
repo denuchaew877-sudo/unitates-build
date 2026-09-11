@@ -2,14 +2,22 @@
     "entries": [
         {
             "name": "Dendrizai",
-            "rating": 1028,
-            "wins": 1,
+            "rating": 1056,
+            "wins": 2,
             "losses": 0,
-            "matches": 1,
+            "matches": 2,
             "kills": 0
         },
         {
             "name": "Miner",
+            "rating": 1000,
+            "wins": 0,
+            "losses": 0,
+            "matches": 0,
+            "kills": 0
+        },
+        {
+            "name": "Miner 1",
             "rating": 1000,
             "wins": 0,
             "losses": 0,
