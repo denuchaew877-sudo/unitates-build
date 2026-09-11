@@ -23,6 +23,14 @@
             "losses": 0,
             "matches": 0,
             "kills": 0
+        },
+        {
+            "name": "Miner 2",
+            "rating": 1000,
+            "wins": 0,
+            "losses": 0,
+            "matches": 0,
+            "kills": 0
         }
     ]
 }
