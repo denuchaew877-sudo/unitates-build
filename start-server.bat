@@ -8,12 +8,11 @@ if not exist "%~dp0Unitates.exe" (
   pause
   exit /b 1
 )
-echo DEEPER dedicated server
-echo Close this window to stop the server.
-echo Friends: DIRECT CONNECT + this PC IPv4. Other house: WAN IP + UDP 7777 forward.
-echo If they cannot join, run diagnose-network.bat on THIS PC.
 echo.
-echo IPv4 on this PC:
-for /f "tokens=2 delims=:" %%A in ('ipconfig ^| findstr /c:"IPv4"') do echo   %%A
+echo Drug iz DRUGOGO GORODA. Ne day emu 192.168 i ne 127.0.0.1
+echo.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0open-wan.ps1"
+echo.
+echo Start server. Close this window to stop.
 echo.
 "%~dp0Unitates.exe" -batchmode -nographics -deeper-server -logfile -
