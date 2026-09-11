@@ -10,8 +10,8 @@ if not exist "%~dp0Unitates.exe" (
 )
 echo DEEPER dedicated server
 echo Close this window to stop the server.
-echo Friends: in the game use DIRECT CONNECT (top-right) and this PC IPv4.
-echo UDP 7777 game, UDP 7788 discover. Allow inbound in Windows Firewall.
+echo Friends: DIRECT CONNECT + this PC IPv4. Other house: WAN IP + UDP 7777 forward.
+echo If they cannot join, run diagnose-network.bat on THIS PC.
 echo.
 echo IPv4 on this PC:
 for /f "tokens=2 delims=:" %%A in ('ipconfig ^| findstr /c:"IPv4"') do echo   %%A
