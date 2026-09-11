@@ -1,0 +1,3 @@
+remote=https://github.com/denuchaew877-sudo/unitates-build.git
+branch=main
+

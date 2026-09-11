@@ -1,0 +1,4 @@
+update-config.local.txt
+Unitates_BackUpThisFolder_ButDontShipItWithYourGame/
+*.log
+CrashReports/
