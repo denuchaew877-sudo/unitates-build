@@ -4,8 +4,8 @@ title UNITATES — установка
 set "URL=%~1"
 if "%URL%"=="" (
   echo Вставь адрес Git-репозитория с билдом.
-  echo Пример: https://github.com/you/unitates-build.git
-  set /p URL=URL:
+  echo Пример: https://github.com/denuchaew877-sudo/unitates-build.git
+  if "%URL%"=="" set "URL=https://github.com/denuchaew877-sudo/unitates-build.git"
 )
 if "%URL%"=="" (
   echo Адрес пустой.

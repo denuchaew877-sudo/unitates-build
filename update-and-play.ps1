@@ -3,6 +3,10 @@
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $root
 
+$OfficialRemote = "https://github.com/denuchaew877-sudo/unitates-build.git"
+$OfficialBranch = "main"
+$VersionUrl = "https://raw.githubusercontent.com/denuchaew877-sudo/unitates-build/main/version.json"
+
 function Read-ConfigPair([string]$path, [string]$key) {
     if (-not (Test-Path $path)) { return "" }
     foreach ($line in Get-Content -LiteralPath $path -Encoding UTF8) {
@@ -22,10 +26,37 @@ function Get-Config([string]$key, [string]$fallback = "") {
     return $fallback
 }
 
+function Read-VersionFile([string]$path) {
+    if (-not (Test-Path $path)) { return "" }
+    try { return [string](Get-Content $path -Raw -Encoding UTF8 | ConvertFrom-Json).version } catch { return "" }
+}
+
+function Version-Number([string]$value) {
+    $parts = @(($value -split "[^0-9]") | Where-Object { $_ -ne "" })
+    while ($parts.Count -lt 3) { $parts += "0" }
+    return ([int]$parts[0] * 1000000) + ([int]$parts[1] * 1000) + [int]$parts[2]
+}
+
+function Get-RemoteVersion {
+    try {
+        $response = Invoke-WebRequest -UseBasicParsing -Uri $VersionUrl -TimeoutSec 15
+        return [string]($response.Content | ConvertFrom-Json).version
+    }
+    catch {
+        return ""
+    }
+}
+
+function Write-LocalVersion {
+    $version = Read-VersionFile (Join-Path $root "version.json")
+    if ($version) { Write-Host "Локальная версия: $version" }
+    else { Write-Host "Локальная версия: неизвестна" }
+}
+
 function Start-Game {
     $exe = Join-Path $root "Unitates.exe"
     if (-not (Test-Path -LiteralPath $exe)) {
-        Write-Host "Unitates.exe не найден. Сначала скачай игру через Git."
+        Write-Host "Unitates.exe не найден. Нужна папка с игрой, не ярлык."
         Pause-IfNeeded
         exit 1
     }
@@ -37,53 +68,101 @@ function Pause-IfNeeded {
     if ($Host.Name -eq "ConsoleHost") { Write-Host ""; Read-Host "Нажми Enter" | Out-Null }
 }
 
-$remote = Get-Config "remote"
-$branch = Get-Config "branch" "main"
+function Update-FromZip {
+    Write-Host "Git не смог обновить. Качаю архив с GitHub..."
+    $zip = Join-Path $env:TEMP "unitates-build.zip"
+    $extract = Join-Path $env:TEMP "unitates-build-extract"
+    try {
+        Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/denuchaew877-sudo/unitates-build/archive/refs/heads/main.zip" -OutFile $zip -TimeoutSec 180
+        if (Test-Path $extract) { Remove-Item $extract -Recurse -Force }
+        Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
+        $inner = Get-ChildItem $extract -Directory | Select-Object -First 1
+        if (-not $inner) { throw "Пустой архив" }
+        Copy-Item -Path (Join-Path $inner.FullName "*") -Destination $root -Recurse -Force
+        Write-Host "Файлы из архива скопированы."
+        return $true
+    }
+    catch {
+        Write-Host "Архив не скачался: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+$remote = Get-Config "remote" $OfficialRemote
+if (-not $remote) { $remote = $OfficialRemote }
+$branch = Get-Config "branch" $OfficialBranch
+if (-not $branch) { $branch = $OfficialBranch }
 $mode = Get-Config "mode" "player"
+$localVersion = Read-VersionFile (Join-Path $root "version.json")
+$remoteVersion = Get-RemoteVersion
+$remoteNewer = $remoteVersion -and ((Version-Number $remoteVersion) -gt (Version-Number $localVersion))
 
 Write-Host "UNITATES  //  проверка обновлений"
+Write-Host "Репозиторий: $remote"
+Write-LocalVersion
+if ($remoteVersion) { Write-Host "На сервере: $remoteVersion" }
+else { Write-Host "На сервере: не прочиталось (сеть / GitHub)" }
 Write-Host ""
 
+$localCfg = Join-Path $root "update-config.local.txt"
+if ($mode -eq "dev" -and $remoteNewer) {
+    Write-Host "На сервере версия новее. Игнорирую mode=dev и патчу."
+    $mode = "player"
+}
+elseif ($mode -eq "dev") {
+    Write-Host "mode=dev: локальный билд не затираю."
+    Write-Host "Если ты игрок, удали update-config.local.txt и запусти play.bat снова."
+    Write-Host ""
+    Start-Game
+    exit 0
+}
+
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Write-Host "Git не установлен. Скачай https://git-scm.com/download/win"
-    Write-Host "Без Git автообновление не работает - запускаю локальную копию."
+    Write-Host "Git не установлен."
+    if ($remoteNewer -or -not $localVersion) {
+        if (Update-FromZip) {
+            Write-Host ""
+            Start-Game
+            exit 0
+        }
+    }
+    Write-Host "Поставь Git: https://git-scm.com/download/win"
+    Write-Host "Пока запускаю то, что есть."
     Write-Host ""
     Start-Game
     exit 0
 }
 
 if (-not (Test-Path -LiteralPath (Join-Path $root ".git"))) {
-    if (-not $remote) {
-        Write-Host "Это ещё не Git-копия и в update-config.txt нет remote=..."
-        Write-Host "Друг должен один раз клонировать репозиторий, либо укажи URL."
-        Write-Host ""
-        Start-Game
-        exit 0
-    }
-    Write-Host "Первая установка. Подключаю $remote"
-    git init -b $branch | Out-Null
+    Write-Host "Папка без Git. Подключаю $remote"
+    git init -b $branch
+    if ($LASTEXITCODE -ne 0) { git init }
+    git remote remove origin 2>$null
     git remote add origin $remote
 }
 
 $origin = git remote get-url origin 2>$null
-if (-not $origin -and $remote) {
+if (-not $origin) {
     git remote add origin $remote
 }
-elseif ($remote -and $origin -and $origin -ne $remote) {
+elseif ($origin -ne $remote) {
+    Write-Host "origin был $origin — ставлю официальный адрес."
     git remote set-url origin $remote
 }
 
-if ($mode -eq "dev") {
-    Write-Host "Режим сборки: обновление с сервера пропущено."
-    Write-Host ""
-    Start-Game
-    exit 0
-}
-
-Write-Host "Спрашиваю сервер..."
-git fetch origin $branch 2>&1 | Out-Null
+Write-Host "Спрашиваю GitHub..."
+$fetchOut = git fetch --prune origin $branch 2>&1
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Сеть недоступна или remote неверный. Запускаю то, что уже скачано."
+    Write-Host "git fetch не вышел:"
+    Write-Host ($fetchOut | Out-String)
+    if ($remoteNewer -or -not $localVersion) {
+        if (Update-FromZip) {
+            Write-Host ""
+            Start-Game
+            exit 0
+        }
+    }
+    Write-Host "Запускаю то, что уже скачано."
     Write-Host ""
     Start-Game
     exit 0
@@ -92,30 +171,44 @@ if ($LASTEXITCODE -ne 0) {
 $remoteHead = git rev-parse --verify "origin/$branch" 2>$null
 $localHead = git rev-parse --verify HEAD 2>$null
 if (-not $remoteHead) {
-    Write-Host "Ветка origin/$branch не найдена. Запускаю локальную копию."
-    Write-Host ""
+    Write-Host "Ветка origin/$branch не найдена после fetch."
+    if (Update-FromZip) {
+        Write-Host ""
+        Start-Game
+        exit 0
+    }
     Start-Game
     exit 0
 }
 
-if ($localHead -eq $remoteHead) {
-    $version = "локальная"
-    $versionFile = Join-Path $root "version.json"
-    if (Test-Path $versionFile) {
-        try { $version = (Get-Content $versionFile -Raw -Encoding UTF8 | ConvertFrom-Json).version } catch { $version = $version }
-    }
+if ($localHead -and ($localHead -eq $remoteHead) -and -not $remoteNewer) {
     Write-Host "Обновлений нет. Версия актуальна."
     Write-Host ""
     Start-Game
     exit 0
 }
 
-Write-Host "Есть патч. Качаю только недостающие и изменённые файлы..."
-git checkout -B $branch | Out-Null
+Write-Host "Есть патч. Качаю изменённые файлы..."
+git checkout -B $branch
 git reset --hard "origin/$branch"
-if (Get-Command git-lfs -ErrorAction SilentlyContinue) {
-    git lfs pull
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "git reset не вышел. Пробую архив."
+    if (-not (Update-FromZip)) {
+        Pause-IfNeeded
+        Start-Game
+        exit 1
+    }
 }
+
+if (Test-Path $localCfg) {
+    $stillDev = Read-ConfigPair $localCfg "mode"
+    if ($stillDev -eq "dev") {
+        Write-Host "update-config.local.txt с mode=dev оставлен как был."
+    }
+}
+
+$after = Read-VersionFile (Join-Path $root "version.json")
+if ($after) { Write-Host "Теперь версия: $after" }
 Write-Host "Готово."
 Write-Host ""
 Start-Game

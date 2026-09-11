@@ -1,4 +1,3 @@
-# Адрес репозитория, куда заливается Build (GitHub / GitLab / свой сервер).
-# Пример: https://github.com/you/unitates-build.git
-remote=
+# Адрес репозитория с билдом. Не оставляй пустым — иначе у друга не патчится.
+remote=https://github.com/denuchaew877-sudo/unitates-build.git
 branch=main
